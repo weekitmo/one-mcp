@@ -9,6 +9,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 interface BatchImportModalProps {
     open: boolean;
@@ -25,12 +26,32 @@ interface ProgressUpdate {
     message: string;
 }
 
+const MAX_SSE_RETRIES = 3;
+const SSE_RETRY_BASE_MS = 500;
+
+const sanitizeServiceName = (raw: string) => {
+    if (!raw) return '';
+    const trimmed = raw.trim();
+    if (!trimmed) return '';
+    const replaced = trimmed.replace(/[ \t\n\r/]+/g, '-');
+    const collapsed = replaced.replace(/-+/g, '-');
+    return collapsed.replace(/^-+|-+$/g, '').toLowerCase();
+};
+
+const extractServiceNames = (input: any): string[] => {
+    if (!input || typeof input !== 'object') return [];
+    const services = input.mcpServers && typeof input.mcpServers === 'object' ? input.mcpServers : input;
+    if (!services || typeof services !== 'object') return [];
+    return Object.keys(services);
+};
+
 const BatchImportModal: React.FC<BatchImportModalProps> = ({
     open,
     onClose,
     onImportSuccess,
 }) => {
     const { t } = useTranslation();
+    const { toast } = useToast();
     const [view, setView] = useState<ViewState>('input');
     const [jsonInput, setJsonInput] = useState('');
     const [progressLogs, setProgressLogs] = useState<ProgressUpdate[]>([]);
@@ -39,12 +60,19 @@ const BatchImportModal: React.FC<BatchImportModalProps> = ({
 
     const handleImport = async () => {
         // Basic JSON validation
+        let parsedInput: any = null;
         try {
-            JSON.parse(jsonInput);
+            parsedInput = JSON.parse(jsonInput);
         } catch {
-            alert(t('batchImport.invalidJsonError'));
+            toast({
+                variant: 'destructive',
+                title: t('common.error'),
+                description: t('batchImport.invalidJsonError'),
+            });
             return;
         }
+
+        const expectedNames = extractServiceNames(parsedInput);
 
         setIsImporting(true);
         setView('progress');
@@ -69,48 +97,111 @@ const BatchImportModal: React.FC<BatchImportModalProps> = ({
             const data = await response.json();
             const taskId = data.task_id;
 
-            // Establish SSE connection to receive progress updates
-            const token = localStorage.getItem('token');
-            const eventSource = new EventSource(`/api/mcp_market/batch-import/progress/${taskId}?token=${encodeURIComponent(token || '')}`);
-
-            eventSource.onmessage = (event) => {
+            const verifyImportByInstalledList = async () => {
                 try {
-                    const update = JSON.parse(event.data);
-
-                    if (update.status === 'done') {
-                        // Final summary received
-                        setSummary(update.summary);
-                        setView('report');
-                        setIsImporting(false);
-                        eventSource.close();
-                    } else {
-                        // Progress update received
-                        setProgressLogs(prev => [...prev, update]);
-
-                        // Update running totals (optional, for real-time feedback)
-                        setSummary(prev => ({
-                            success: prev.success + (update.status === 'success' ? 1 : 0),
-                            skipped: prev.skipped + (update.status === 'skipped' ? 1 : 0),
-                            failed: prev.failed + (update.status === 'failed' ? 1 : 0),
-                        }));
+                    const token = localStorage.getItem('token') || '';
+                    const verifyResponse = await fetch('/api/mcp_market/installed', {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        },
+                    });
+                    if (!verifyResponse.ok) {
+                        throw new Error(`HTTP error! status: ${verifyResponse.status}`);
                     }
-                } catch (parseError) {
-                    console.error('Error parsing SSE data:', parseError);
+                    const verifyData = await verifyResponse.json();
+                    const installedList = Array.isArray(verifyData?.data) ? verifyData.data : [];
+                    const installedNames = new Set(
+                        installedList
+                            .map((item: any) => sanitizeServiceName(item.name || item.Name || item.display_name || item.DisplayName || ''))
+                            .filter(Boolean)
+                    );
+
+                    const logs: ProgressUpdate[] = expectedNames.map((name) => {
+                        const sanitized = sanitizeServiceName(name);
+                        const found = sanitized ? installedNames.has(sanitized) : false;
+                        return {
+                            name,
+                            status: found ? 'success' : 'failed',
+                            message: found ? '已导入或已存在' : '未在已安装列表中找到',
+                        };
+                    });
+
+                    const nextSummary = {
+                        success: logs.filter((log) => log.status === 'success').length,
+                        skipped: 0,
+                        failed: logs.filter((log) => log.status === 'failed').length,
+                    };
+
+                    setProgressLogs(logs);
+                    setSummary(nextSummary);
+                    setView('report');
+                    setIsImporting(false);
+                } catch (verifyError) {
+                    console.error('Fallback verification failed:', verifyError);
+                    setIsImporting(false);
+                    toast({
+                        variant: 'destructive',
+                        title: t('common.error'),
+                        description: t('batchImport.connectionError'),
+                    });
+                    setView('input');
                 }
             };
 
-            eventSource.onerror = (error) => {
-                console.error('SSE connection error:', error);
-                eventSource.close();
-                setIsImporting(false);
-                alert('连接错误，请重试');
-                setView('input');
+            const connectSSE = (attempt: number) => {
+                const token = localStorage.getItem('token');
+                const eventSource = new EventSource(`/api/mcp_market/batch-import/progress/${taskId}?token=${encodeURIComponent(token || '')}`);
+
+                eventSource.onmessage = (event) => {
+                    try {
+                        const update = JSON.parse(event.data);
+
+                        if (update.status === 'done') {
+                            // Final summary received
+                            setSummary(update.summary);
+                            setView('report');
+                            setIsImporting(false);
+                            eventSource.close();
+                        } else {
+                            // Progress update received
+                            setProgressLogs(prev => [...prev, update]);
+
+                            // Update running totals (optional, for real-time feedback)
+                            setSummary(prev => ({
+                                success: prev.success + (update.status === 'success' ? 1 : 0),
+                                skipped: prev.skipped + (update.status === 'skipped' ? 1 : 0),
+                                failed: prev.failed + (update.status === 'failed' ? 1 : 0),
+                            }));
+                        }
+                    } catch (parseError) {
+                        console.error('Error parsing SSE data:', parseError);
+                    }
+                };
+
+                eventSource.onerror = () => {
+                    eventSource.close();
+                    if (attempt < MAX_SSE_RETRIES) {
+                        const delay = SSE_RETRY_BASE_MS * (attempt + 1);
+                        setTimeout(() => connectSSE(attempt + 1), delay);
+                        return;
+                    }
+                    verifyImportByInstalledList();
+                };
             };
+
+            // Establish SSE connection to receive progress updates
+            connectSSE(0);
 
         } catch (error) {
             console.error('Error starting batch import:', error);
             setIsImporting(false);
-            alert('启动导入失败：' + (error instanceof Error ? error.message : String(error)));
+            toast({
+                variant: 'destructive',
+                title: t('common.error'),
+                description: t('batchImport.startFailed', {
+                    error: error instanceof Error ? error.message : String(error),
+                }),
+            });
             setView('input');
         }
     };

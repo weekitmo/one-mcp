@@ -483,6 +483,8 @@ type BatchImportTask struct {
 	Progress    chan ProgressUpdate
 	CreatedAt   time.Time
 	ServiceData map[string]interface{}
+	Summary     *BatchImportSummary
+	CompletedAt *time.Time
 }
 
 type ProgressUpdate struct {
@@ -502,6 +504,8 @@ var (
 	batchImportTasks = make(map[string]*BatchImportTask)
 	tasksMutex       = &sync.Mutex{}
 )
+
+const batchImportTaskRetention = 30 * time.Second
 
 // InstallOrAddService godoc
 // @Summary 安装或添加服务
@@ -1774,6 +1778,15 @@ func StartBatchImport(c *gin.Context) {
 func processBatchImport(task *BatchImportTask) {
 	defer func() {
 		close(task.Progress)
+		// Keep completed tasks briefly so late SSE subscribers can still read summary.
+		if task.Status == "completed" {
+			time.AfterFunc(batchImportTaskRetention, func() {
+				tasksMutex.Lock()
+				delete(batchImportTasks, task.ID)
+				tasksMutex.Unlock()
+			})
+			return
+		}
 		tasksMutex.Lock()
 		delete(batchImportTasks, task.ID)
 		tasksMutex.Unlock()
@@ -1822,7 +1835,10 @@ func processBatchImport(task *BatchImportTask) {
 		}
 	}
 
+	now := time.Now()
 	task.Status = "completed"
+	task.Summary = summary
+	task.CompletedAt = &now
 	task.Progress <- ProgressUpdate{
 		Status:  "done",
 		Summary: summary,
@@ -2187,6 +2203,30 @@ func StreamBatchImportProgress(c *gin.Context) {
 
 	if !exists {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
+		return
+	}
+
+	// If task already completed, send summary immediately and return.
+	if task.Status == "completed" && task.Summary != nil {
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Connection", "keep-alive")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+
+		flusher, ok := c.Writer.(http.Flusher)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Streaming unsupported"})
+			return
+		}
+
+		doneUpdate := ProgressUpdate{
+			Status:  "done",
+			Summary: task.Summary,
+		}
+		if jsonData, err := json.Marshal(doneUpdate); err == nil {
+			fmt.Fprintf(c.Writer, "data: %s\n\n", jsonData)
+			flusher.Flush()
+		}
 		return
 	}
 

@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => {
       }
     },
     server: {
-      port: 5173, // 明确指定开发服务器端口
+      port: 3300, // 明确指定开发服务器端口
       strictPort: true, // 如果端口被占用，则报错而不是尝试下一个端口
       proxy: {
         '^/api/.*': {

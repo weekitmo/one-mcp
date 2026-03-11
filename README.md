@@ -298,8 +298,8 @@ The application provides RESTful APIs for all functionality:
 ./run.sh
 
 # This will start:
-# - Backend server on :3000
-# - Frontend dev server on :5173 (with hot reload)
+# - Backend server on :3299
+# - Frontend dev server on :3300 (with hot reload, when FRONTEND_MODE=dev)
 ```
 
 ### Project Structure
@@ -318,7 +318,7 @@ one-mcp/
 
 ```bash
 # Frontend tests
-cd frontend && npm test
+cd frontend && pnpm test
 
 # Backend tests
 go test ./...

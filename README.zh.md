@@ -111,7 +111,7 @@ cp .env_example .env
 
 # 安装依赖并构建
 go mod tidy
-cd frontend && npm install && npm run build && cd ..
+cd frontend && pnpm install && pnpm run build && cd ..
 
 # 运行应用程序
 go run main.go
@@ -304,8 +304,8 @@ SQL_DSN=postgres://username:password@localhost/database_name?sslmode=disable
 ./run.sh
 
 # 这将启动：
-# - 后端服务器在 :3000
-# - 前端开发服务器在 :5173（支持热重载）
+# - 后端服务器在 :3299
+# - 前端开发服务器在 :3300（FRONTEND_MODE=dev 时，支持热重载）
 ```
 
 ### 项目结构
@@ -327,7 +327,7 @@ one-mcp/
 
 ```bash
 # 前端测试
-cd frontend && npm test
+cd frontend && pnpm test
 
 # 后端测试
 go test ./...

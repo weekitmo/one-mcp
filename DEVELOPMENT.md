@@ -47,7 +47,7 @@ go mod tidy
 2. Install frontend dependencies:
 ```bash
 cd frontend
-npm install
+pnpm install
 cd ..
 ```
 
@@ -61,7 +61,7 @@ cp .env_example .env
 2. Edit `.env` file with your configuration:
 ```bash
 # Server configuration
-PORT=3000
+PORT=3299
 
 # Database configuration (optional, defaults to SQLite)
 # SQL_DSN=root:password@tcp(localhost:3306)/one_mcp
@@ -78,7 +78,7 @@ PORT=3000
 Use the development script to start both frontend and backend servers simultaneously:
 
 ```bash
-# Use default port 3000
+# Use default port 3299
 ./run.sh
 
 # Or specify a custom port
@@ -86,8 +86,8 @@ PORT=8080 ./run.sh
 ```
 
 This will:
-- Build and start the backend server on http://localhost:$PORT (default 3000)
-- Start the frontend development server on http://localhost:5173
+- Build and start the backend server on http://localhost:$PORT (default 3299)
+- Start the frontend development server on http://localhost:3300 (FRONTEND_MODE=dev)
 - Automatically proxy API requests from frontend to backend
 - Set up hot reloading for both frontend and backend changes
 - Create necessary database tables on first run
@@ -156,10 +156,10 @@ SQL_DSN=postgres://user:password@localhost/one_mcp?sslmode=disable
 
 The project synchronizes frontend and backend port configuration:
 
-- Default port is `3000`
+- Default port is `3299`
 - Can be changed via the `PORT` environment variable
 - In development mode:
-  - Frontend dev server runs on port `5173`
+  - Frontend dev server runs on port `3300`
   - Backend runs on the specified `PORT`
   - API requests are automatically proxied from frontend to backend
 - In production mode:
@@ -181,7 +181,7 @@ Run tests for different components:
 ```bash
 # Frontend tests
 cd frontend
-npm test
+pnpm test
 
 # Backend tests (if available)
 go test ./...

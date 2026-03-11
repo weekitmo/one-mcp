@@ -74,6 +74,8 @@
         "import": "Import",
         "importing": "Importing...",
         "invalidJsonError": "Invalid JSON format. Please check your input.",
+        "connectionError": "Connection error. Please try again.",
+        "startFailed": "Failed to start import: {{error}}",
         "processingServices": "Processing services...",
         "importComplete": "Import Complete",
         "importSummary": "Import completed: {{success}} successful, {{skipped}} skipped, {{failed}} failed.",

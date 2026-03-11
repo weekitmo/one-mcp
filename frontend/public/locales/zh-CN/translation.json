@@ -74,6 +74,8 @@
         "import": "导入",
         "importing": "导入中...",
         "invalidJsonError": "JSON 格式无效，请检查您的输入。",
+        "connectionError": "连接错误，请重试。",
+        "startFailed": "启动导入失败：{{error}}",
         "processingServices": "正在处理服务...",
         "importComplete": "导入完成",
         "importSummary": "导入完成：{{success}} 个成功，{{skipped}} 个跳过，{{failed}} 个失败。",
