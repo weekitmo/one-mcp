@@ -70,20 +70,20 @@ brew tap burugo/tap
 # 安装 one-mcp
 brew install one-mcp
 
-# 以后台服务启动（默认端口：3000）
+# 以后台服务启动（默认端口：3299）
 brew services start one-mcp
 
 # 停止服务
 brew services stop one-mcp
 ```
 
-如果端口 `3000` 已被占用，可用自定义端口重启服务：
+如果端口 `3299` 已被占用，可用自定义端口重启服务：
 
 ```bash
 ONE_MCP_PORT=3001 brew services restart one-mcp
 ```
 
-访问地址：http://localhost:3000（或你的自定义端口）
+访问地址：http://localhost:3299（或你的自定义端口）
 
 ### 使用 Docker（推荐）
 
@@ -91,12 +91,12 @@ ONE_MCP_PORT=3001 brew services restart one-mcp
 # 使用 Docker 运行
 docker run --name one-mcp -d \
   --restart always \
-  -p 3000:3000 \
+  -p 3299:3299 \
   -v $(pwd)/data:/data \
   buru2020/one-mcp:latest
 
 # 访问应用程序
-open http://localhost:3000
+open http://localhost:3299
 ```
 
 ### 手动安装
@@ -146,7 +146,7 @@ cp .env_example .env
 
 ```bash
 # 服务器配置
-PORT=3000
+PORT=3299
 
 # 数据库（可选，默认使用 SQLite）
 # SQLite(default)
@@ -172,12 +172,12 @@ brew tap burugo/tap
 brew install one-mcp
 
 # 前台运行
-one-mcp --port 3000
+one-mcp --port 3299
 
-# 或作为系统服务运行（默认端口：3000）
+# 或作为系统服务运行（默认端口：3299）
 brew services start one-mcp
 
-# 当 3000 被占用时，使用自定义端口
+# 当 3299 被占用时，使用自定义端口
 ONE_MCP_PORT=3001 brew services restart one-mcp
 ```
 
@@ -193,9 +193,9 @@ docker-compose up -d
 # 或直接运行
 docker run -d \
   --name one-mcp \
-  -p 3000:3000 \
+  -p 3299:3299 \
   -v ./data:/data \
-  -e PORT=3000 \
+  -e PORT=3299 \
   one-mcp
 ```
 
@@ -208,11 +208,11 @@ docker run -d \
 
 2. **运行服务器**：
    ```bash
-   ./one-mcp --port 3000
+   ./one-mcp --port 3299
    ```
 
 3. **访问应用程序**：
-   在浏览器中打开 http://localhost:3000
+   在浏览器中打开 http://localhost:3299
 
 ## 配置说明
 
@@ -230,7 +230,7 @@ One MCP 支持从以下 INI 文件读取运行时配置：
 defaults < config file < environment variables < flags
 ```
 
-- `defaults`：内置默认值（例如端口 `3000`）
+- `defaults`：内置默认值（例如端口 `3299`）
 - `config file`：`~/.config/one-mcp/config.ini` 中的配置
 - `environment variables`：如 `PORT`、`SQLITE_PATH`、`ENABLE_GZIP`
 - `flags`：命令行参数（如 `--port`，优先级最高）
@@ -240,7 +240,7 @@ defaults < config file < environment variables < flags
 `config.ini` 示例：
 
 ```ini
-PORT=3000
+PORT=3299
 SQLITE_PATH=one-mcp.db
 ENABLE_GZIP=true
 ```
@@ -283,7 +283,7 @@ SQL_DSN=postgres://username:password@localhost/database_name?sslmode=disable
 
 应用程序为所有功能提供 RESTful API：
 
-- **基础 URL**：`http://localhost:3000/api`
+- **基础 URL**：`http://localhost:3299/api`
 - **认证**：Bearer 令牌（通过登录获取）
 - **内容类型**：`application/json`
 

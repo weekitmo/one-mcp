@@ -16,19 +16,46 @@ PORT=${PORT:-3299}
 # Frontend mode: "dist" (default) or "dev"
 FRONTEND_MODE=${FRONTEND_MODE:-dist}
 
+# Flags
+SKIP_PNPM_BUILD=0
+while getopts ":s" opt; do
+  case $opt in
+    s)
+      SKIP_PNPM_BUILD=1
+      ;;
+    \?)
+      echo "Usage: $0 [-s]"
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 # Build or prepare frontend
 if [ "$FRONTEND_MODE" = "dev" ]; then
   echo "Installing frontend dependencies (dev mode)..."
   cd frontend && pnpm install
   # Ensure frontend/dist exists for go:embed
-  if [ ! -f "dist/index.html" ]; then
-    echo "frontend/dist missing; building once for backend embed..."
-    pnpm run build
+  if [ "$SKIP_PNPM_BUILD" -eq 1 ]; then
+    if [ ! -f "dist/index.html" ]; then
+      echo "Warning: frontend/dist missing; skipping build due to -s flag."
+    fi
+  else
+    if [ ! -f "dist/index.html" ]; then
+      echo "frontend/dist missing; building once for backend embed..."
+      pnpm run build
+    fi
   fi
   cd ..
 else
   echo "Building frontend (dist mode)..."
-  cd frontend && pnpm install && pnpm run build && cd ..
+  cd frontend && pnpm install
+  if [ "$SKIP_PNPM_BUILD" -eq 1 ]; then
+    echo "Skipping pnpm build due to -s flag."
+  else
+    pnpm run build
+  fi
+  cd ..
 fi
 
 # Clean up existing processes

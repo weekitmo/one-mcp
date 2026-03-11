@@ -68,20 +68,20 @@ brew tap burugo/tap
 # Install one-mcp
 brew install one-mcp
 
-# Start as background service (default port: 3000)
+# Start as background service (default port: 3299)
 brew services start one-mcp
 
 # Stop service
 brew services stop one-mcp
 ```
 
-If port `3000` is already in use, restart with a custom port:
+If port `3299` is already in use, restart with a custom port:
 
 ```bash
 ONE_MCP_PORT=3001 brew services restart one-mcp
 ```
 
-Access the application at http://localhost:3000 (or your custom port).
+Access the application at http://localhost:3299 (or your custom port).
 
 ### Using Docker (Recommended)
 
@@ -89,12 +89,12 @@ Access the application at http://localhost:3000 (or your custom port).
 # Run with Docker
 docker run --name one-mcp -d \
   --restart always \
-  -p 3000:3000 \
+  -p 3299:3299 \
   -v $(pwd)/data:/data \
   buru2020/one-mcp:latest
 
 # Access the application
-open http://localhost:3000
+open http://localhost:3299
 ```
 
 ### Manual Installation
@@ -139,7 +139,7 @@ Key configuration options:
 
 ```bash
 # Server Configuration
-PORT=3000
+PORT=3299
 
 # Database (SQLite is default, MySQL and PostgreSQL are supported)
 # SQLite(default)
@@ -166,12 +166,12 @@ brew tap burugo/tap
 brew install one-mcp
 
 # Run in foreground
-one-mcp --port 3000
+one-mcp --port 3299
 
-# Or run as system service (default port: 3000)
+# Or run as system service (default port: 3299)
 brew services start one-mcp
 
-# Use a custom service port when 3000 is occupied
+# Use a custom service port when 3299 is occupied
 ONE_MCP_PORT=3001 brew services restart one-mcp
 ```
 
@@ -187,9 +187,9 @@ docker-compose up -d
 # Or run directly
 docker run -d \
   --name one-mcp \
-  -p 3000:3000 \
+  -p 3299:3299 \
   -v ./data:/data \
-  -e PORT=3000 \
+  -e PORT=3299 \
   one-mcp
 ```
 
@@ -202,11 +202,11 @@ docker run -d \
 
 2. **Run the server**:
    ```bash
-   ./one-mcp --port 3000
+   ./one-mcp --port 3299
    ```
 
 3. **Access the application**:
-   Open http://localhost:3000 in your browser
+   Open http://localhost:3299 in your browser
 
 ## Configuration
 
@@ -224,7 +224,7 @@ The runtime priority is:
 defaults < config file < environment variables < flags
 ```
 
-- `defaults`: built-in defaults (for example port `3000`)
+- `defaults`: built-in defaults (for example port `3299`)
 - `config file`: values from `~/.config/one-mcp/config.ini`
 - `environment variables`: values like `PORT`, `SQLITE_PATH`, `ENABLE_GZIP`
 - `flags`: command-line flags like `--port` (highest priority)
@@ -234,7 +234,7 @@ On first startup, One MCP automatically creates a minimal default `config.ini`.
 Example `config.ini`:
 
 ```ini
-PORT=3000
+PORT=3299
 SQLITE_PATH=one-mcp.db
 ENABLE_GZIP=true
 ```
@@ -277,7 +277,7 @@ SQL_DSN=postgres://username:password@localhost/database_name?sslmode=disable
 
 The application provides RESTful APIs for all functionality:
 
-- **Base URL**: `http://localhost:3000/api`
+- **Base URL**: `http://localhost:3299/api`
 - **Authentication**: Bearer token (obtained via login)
 - **Content-Type**: `application/json`
 
