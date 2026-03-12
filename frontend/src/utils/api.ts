@@ -171,7 +171,8 @@ export const GroupService = {
     create: (data: any) => api.post<any>('/groups', data),
     update: (id: number, data: any) => api.put<any>(`/groups/${id}`, data),
     delete: (id: number) => api.delete<any>(`/groups/${id}`),
+    configureSkill: (id: number) => api.post<any>(`/groups/${id}/configure-skill`),
 };
 
 // Export the instance
-export default api; 
+export default api;

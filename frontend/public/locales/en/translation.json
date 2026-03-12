@@ -63,6 +63,9 @@
         "exportSkill": "Export Skill",
         "exportSuccess": "Skill package exported successfully",
         "exportFailed": "Failed to export skill package",
+        "configureSkill": "One-click Setup",
+        "configureSuccess": "Skill configured successfully",
+        "configureFailed": "Failed to configure skill",
         "validation": {
             "nameRequired": "Group ID is required",
             "displayNameRequired": "Display Name is required"

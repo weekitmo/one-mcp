@@ -63,6 +63,9 @@
         "exportSkill": "导出 Skill",
         "exportSuccess": "Skill 包导出成功",
         "exportFailed": "Skill 包导出失败",
+        "configureSkill": "一键配置",
+        "configureSuccess": "Skill 配置成功",
+        "configureFailed": "Skill 配置失败",
         "validation": {
             "nameRequired": "请输入分组标识",
             "displayNameRequired": "请输入显示名称"

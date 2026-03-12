@@ -35,6 +35,8 @@ one-mcp*
 .cursor/rules/*-mode.mdc
 *.db
 *.log
+data/skills/
 
 .trae
 .opencode
+skills-lock.json

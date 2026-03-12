@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Plus, Pencil, Trash2, Copy, Layers, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Layers, Download, Sparkles, Loader2 } from 'lucide-react';
 import api, { GroupService } from '@/utils/api';
 import { useServerAddress } from '@/hooks/useServerAddress';
 import { copyToClipboard } from '@/utils/clipboard';
@@ -200,6 +200,7 @@ export const GroupPage = () => {
     const [services, setServices] = useState<MCPService[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<Group | null>(null);
+    const [configuringGroupId, setConfiguringGroupId] = useState<number | null>(null);
     const [userToken, setUserToken] = useState<string>('');
 
     // Sync user token from AuthContext
@@ -386,6 +387,32 @@ export const GroupPage = () => {
         }
     };
 
+    const handleConfigureSkill = async (group: Group) => {
+        try {
+            setConfiguringGroupId(group.id);
+            const resp = await GroupService.configureSkill(group.id);
+            if (!resp.success) {
+                throw new Error(resp.message || 'Configure failed');
+            }
+
+            toast({
+                title: t('common.success'),
+                description: t('groups.configureSuccess'),
+            });
+        } catch (error) {
+            console.error('Configure skill failed', error);
+            const backendMessage = (error as any)?.response?.data?.message;
+            const errorMessage = backendMessage || (error instanceof Error ? error.message : t('groups.configureFailed'));
+            toast({
+                variant: "destructive",
+                title: t('common.error'),
+                description: errorMessage,
+            });
+        } finally {
+            setConfiguringGroupId(null);
+        }
+    };
+
     const handleToggleEnabled = async (group: Group) => {
         try {
             const resp = await GroupService.update(group.id, {
@@ -494,10 +521,26 @@ export const GroupPage = () => {
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex justify-between items-end mt-auto">
-                                    <Button variant="outline" size="sm" className="h-6" onClick={() => handleExportSkill(group)}>
-                                        <Download className="mr-1 h-3 w-3" />
-                                        {t('groups.exportSkill')}
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button variant="outline" size="sm" className="h-6" onClick={() => handleExportSkill(group)}>
+                                            <Download className="mr-1 h-3 w-3" />
+                                            {t('groups.exportSkill')}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-6"
+                                            onClick={() => handleConfigureSkill(group)}
+                                            disabled={configuringGroupId === group.id}
+                                        >
+                                            {configuringGroupId === group.id ? (
+                                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                            ) : (
+                                                <Sparkles className="mr-1 h-3 w-3" />
+                                            )}
+                                            {t('groups.configureSkill')}
+                                        </Button>
+                                    </div>
                                     <Switch
                                         checked={group.enabled}
                                         onCheckedChange={() => handleToggleEnabled(group)}

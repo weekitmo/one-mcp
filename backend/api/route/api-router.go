@@ -122,6 +122,7 @@ func SetApiRouter(route *gin.Engine) {
 			groupRoute.PUT("/:id", handler.UpdateGroup)
 			groupRoute.DELETE("/:id", handler.DeleteGroup)
 			groupRoute.GET("/:id/export", handler.ExportGroupSkill)
+			groupRoute.POST("/:id/configure-skill", handler.ConfigureGroupSkill)
 		}
 
 		// Market API routes
