@@ -95,3 +95,11 @@ const (
 	OptionNetworkMcpHeartbeatTimeout  = "NetworkMcpHeartbeatTimeout"
 	OptionNetworkMcpHeartbeatJitter   = "NetworkMcpHeartbeatJitter"
 )
+
+// MCP tool call timeout
+// Controls the maximum duration for MCP tool calls (e.g., for LLM-based MCP services that may take longer)
+// Values are parsed as time.Duration first (e.g. "120s", "5m"), then as seconds if duration parsing fails.
+// Default is 5 minutes (300 seconds)
+const (
+	OptionMcpToolCallTimeout = "McpToolCallTimeout"
+)

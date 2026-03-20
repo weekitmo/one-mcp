@@ -448,6 +448,88 @@ func validateAndGetPyPIPackageInfo(ctx context.Context, packageName string) (str
 	return result.Info.Summary, nil
 }
 
+func isDirectUVSource(spec string) bool {
+	s := strings.TrimSpace(spec)
+	if s == "" {
+		return false
+	}
+
+	lower := strings.ToLower(s)
+	if strings.HasPrefix(lower, "git+") ||
+		strings.HasPrefix(lower, "http://") ||
+		strings.HasPrefix(lower, "https://") ||
+		strings.HasPrefix(lower, "file://") ||
+		strings.HasPrefix(s, "./") ||
+		strings.HasPrefix(s, "../") ||
+		strings.HasPrefix(s, "/") ||
+		strings.HasPrefix(s, "~/") {
+		return true
+	}
+
+	if strings.Contains(s, " @ ") {
+		parts := strings.SplitN(s, " @ ", 2)
+		if len(parts) == 2 {
+			target := strings.TrimSpace(parts[1])
+			lowerTarget := strings.ToLower(target)
+			if strings.HasPrefix(lowerTarget, "git+") ||
+				strings.HasPrefix(lowerTarget, "http://") ||
+				strings.HasPrefix(lowerTarget, "https://") ||
+				strings.HasPrefix(lowerTarget, "file://") ||
+				strings.HasPrefix(target, "./") ||
+				strings.HasPrefix(target, "../") ||
+				strings.HasPrefix(target, "/") ||
+				strings.HasPrefix(target, "~/") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func resolveUVSourceSpec(packageName string, customArgs []string) string {
+	for i, arg := range customArgs {
+		if arg == "--from" && i+1 < len(customArgs) {
+			return customArgs[i+1]
+		}
+	}
+
+	if len(customArgs) > 0 {
+		firstArg := customArgs[0]
+		if firstArg != "" && !strings.HasPrefix(firstArg, "-") {
+			return firstArg
+		}
+	}
+
+	return packageName
+}
+
+func extractPyPIPackageName(spec string) string {
+	name := strings.TrimSpace(spec)
+	if name == "" {
+		return ""
+	}
+
+	if strings.Contains(name, " @ ") {
+		parts := strings.SplitN(name, " @ ", 2)
+		name = strings.TrimSpace(parts[0])
+	}
+
+	cutoff := len(name)
+	for _, operator := range []string{"==", ">=", "<=", "~=", "!=", ">", "<"} {
+		if idx := strings.Index(name, operator); idx >= 0 && idx < cutoff {
+			cutoff = idx
+		}
+	}
+	name = strings.TrimSpace(name[:cutoff])
+
+	if idx := strings.Index(name, "["); idx >= 0 {
+		name = strings.TrimSpace(name[:idx])
+	}
+
+	return name
+}
+
 // extractPackageNameWithoutVersion extracts the package name without version specifier
 // Examples: "package@1.0.0" -> "package", "package@latest" -> "package", "package" -> "package"
 func extractPackageNameWithoutVersion(packageNameWithVersion string) string {
@@ -581,6 +663,7 @@ func InstallOrAddService(c *gin.Context) {
 
 		// Extract package name without version for API calls
 		cleanPackageName := extractPackageNameWithoutVersion(requestBody.PackageName)
+		uvSourceSpec := resolveUVSourceSpec(requestBody.PackageName, requestBody.CustomArgs)
 
 		// Check tool availability
 		if requestBody.PackageManager == "npm" && !market.CheckNPXAvailable() {
@@ -652,14 +735,19 @@ func InstallOrAddService(c *gin.Context) {
 				}
 			}
 		case "pypi", "uv", "pip":
-			// PyPI package validation and get description info
-			description, err := validateAndGetPyPIPackageInfo(c.Request.Context(), cleanPackageName)
-			if err != nil {
-				common.RespError(c, http.StatusBadRequest,
-					i18n.Translate("package_not_found", lang, requestBody.PackageName), err)
-				return
+			if !(requestBody.SourceType == "custom" && isDirectUVSource(uvSourceSpec)) {
+				pypiPackageName := extractPyPIPackageName(uvSourceSpec)
+				if pypiPackageName == "" {
+					pypiPackageName = cleanPackageName
+				}
+				description, err := validateAndGetPyPIPackageInfo(c.Request.Context(), pypiPackageName)
+				if err != nil {
+					common.RespError(c, http.StatusBadRequest,
+						i18n.Translate("package_not_found", lang, requestBody.PackageName), err)
+					return
+				}
+				packageDescription = description
 			}
-			packageDescription = description
 			// TODO: Implement automatic environment variable discovery for PyPI packages
 		}
 		// Check if all required environment variables are provided
@@ -1936,21 +2024,20 @@ func createSingleServiceFromBatch(ctx context.Context, serviceName string, servi
 			sourcePackageName = lastArg
 		}
 	} else if req.Command == "uvx" && len(req.Args) > 0 {
-		// Check if this looks like a python package
-		// Case 1: uvx --from package_name command (args: ["--from", "package_name", "command"])
 		for i, arg := range req.Args {
 			if arg == "--from" && i+1 < len(req.Args) {
-				packageManager = "pypi"
-				sourcePackageName = req.Args[i+1]
+				sourceSpec := req.Args[i+1]
+				if !isDirectUVSource(sourceSpec) {
+					packageManager = "pypi"
+					sourcePackageName = sourceSpec
+				}
 				break
 			}
 		}
 
-		// Case 2: uvx package_name [args...] (args: ["package_name", "arg1", "arg2"])
 		if packageManager == "custom" {
-			// First arg is typically the package name if no --from is used
 			firstArg := req.Args[0]
-			if firstArg != "" && !strings.HasPrefix(firstArg, "-") {
+			if firstArg != "" && !strings.HasPrefix(firstArg, "-") && !isDirectUVSource(firstArg) {
 				packageManager = "pypi"
 				sourcePackageName = firstArg
 			}

@@ -382,6 +382,12 @@ func networkHeartbeatJitter() time.Duration {
 	return parseDurationOption(common.OptionNetworkMcpHeartbeatJitter, 5*time.Second)
 }
 
+// McpToolCallTimeout returns the configured timeout for MCP tool calls.
+// Default is 5 minutes, configurable via McpToolCallTimeout option.
+func McpToolCallTimeout() time.Duration {
+	return parseDurationOption(common.OptionMcpToolCallTimeout, 5*time.Minute)
+}
+
 type pingableMcpClient interface {
 	Ping(context.Context) error
 }
@@ -1752,7 +1758,10 @@ func addClientToolsToMCPServer(
 			toolName := tool.Name
 			mcpGoServer.AddTool(tool, func(callCtx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 				start := time.Now()
-				result, callErr := mcpGoClient.CallTool(callCtx, request)
+				// Apply configurable timeout for MCP tool calls, consistent with group handler
+				toolCallCtx, toolCallCancel := context.WithTimeout(callCtx, McpToolCallTimeout())
+				defer toolCallCancel()
+				result, callErr := mcpGoClient.CallTool(toolCallCtx, request)
 				duration := time.Since(start)
 				if callErr != nil {
 					trigger := fmt.Sprintf("tool call (%s)", toolName)

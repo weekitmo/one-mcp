@@ -262,7 +262,12 @@ func executeGroupTool(ctx context.Context, group *model.MCPServiceGroup, args *e
 	callReq.Params.Name = args.ToolName
 	callReq.Params.Arguments = args.Arguments
 
-	result, err := sharedInst.Client.CallTool(ctx, callReq)
+	// Create a new context with configurable timeout for the tool call
+	// This allows long-running MCP services (e.g., LLM-based services) to complete without being canceled
+	toolCallCtx, cancel := context.WithTimeout(ctx, proxy.McpToolCallTimeout())
+	defer cancel()
+
+	result, err := sharedInst.Client.CallTool(toolCallCtx, callReq)
 	duration := time.Since(start)
 
 	// Get client name from context

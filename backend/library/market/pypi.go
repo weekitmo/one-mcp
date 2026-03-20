@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"one-mcp/backend/model"
@@ -34,6 +35,27 @@ func CheckUVXAvailable() bool {
 	return true
 }
 
+func resolvePyPIInstallTarget(packageName, version string, args []string) string {
+	for i, arg := range args {
+		if arg == "--from" && i+1 < len(args) {
+			return args[i+1]
+		}
+	}
+
+	if len(args) > 0 {
+		firstArg := strings.TrimSpace(args[0])
+		if firstArg != "" && !strings.HasPrefix(firstArg, "-") {
+			return firstArg
+		}
+	}
+
+	if version != "" && version != "latest" {
+		return fmt.Sprintf("%s==%s", packageName, version)
+	}
+
+	return packageName
+}
+
 // InstallPyPIPackage installs a Python package using uv, creates a virtual environment,
 // and then attempts to initialize it as an MCP server.
 // workDir is currently unused, venvsBaseDir is used instead.
@@ -58,11 +80,7 @@ func InstallPyPIPackage(ctx context.Context, packageName, version, command strin
 	}
 
 	// Install package into the virtual environment
-	// Construct package string (e.g., packageName or packageName==version)
-	packageToInstall := packageName
-	if version != "" && version != "latest" {
-		packageToInstall = fmt.Sprintf("%s==%s", packageName, version)
-	}
+	packageToInstall := resolvePyPIInstallTarget(packageName, version, args)
 
 	pythonExecutable := filepath.Join(pkgVenvDir, "bin", "python")
 	pipInstallCmd := exec.CommandContext(ctx, "uv", "pip", "install", packageToInstall, "--python", pythonExecutable)

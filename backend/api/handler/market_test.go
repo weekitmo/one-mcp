@@ -271,3 +271,72 @@ func TestCreateCustomService_DuplicateNameMock(t *testing.T) {
 		assert.Contains(t, response["message"], "service_name_cannot_be_empty")
 	})
 }
+
+func TestIsDirectUVSource(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{name: "pypi simple", input: "black", expected: false},
+		{name: "pypi with version", input: "black==24.0.0", expected: false},
+		{name: "pypi with extras", input: "mypkg[cli]", expected: false},
+		{name: "pypi with range", input: "mypkg>=1.0", expected: false},
+		{name: "git url", input: "git+https://github.com/org/repo", expected: true},
+		{name: "https wheel", input: "https://example.com/pkg.whl", expected: true},
+		{name: "file url", input: "file:///tmp/pkg.whl", expected: true},
+		{name: "relative path", input: "./local-package", expected: true},
+		{name: "parent path", input: "../local-package", expected: true},
+		{name: "absolute path", input: "/opt/mcp/pkg", expected: true},
+		{name: "home path", input: "~/mcp/pkg", expected: true},
+		{name: "direct reference git", input: "mypkg @ git+https://github.com/org/repo", expected: true},
+		{name: "direct reference file", input: "mypkg @ file:///tmp/pkg.whl", expected: true},
+		{name: "direct reference https", input: "mypkg @ https://example.com/pkg.whl", expected: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, isDirectUVSource(tt.input))
+		})
+	}
+}
+
+func TestUVXSourceClassificationCases(t *testing.T) {
+	cases := []struct {
+		name       string
+		sourceSpec string
+		isPyPI     bool
+	}{
+		{name: "from pypi package", sourceSpec: "black", isPyPI: true},
+		{name: "from pypi extras", sourceSpec: "mypkg[cli]", isPyPI: true},
+		{name: "from git url", sourceSpec: "git+https://github.com/org/repo", isPyPI: false},
+		{name: "from local path", sourceSpec: "./local-package", isPyPI: false},
+		{name: "from wheel url", sourceSpec: "https://example.com/pkg.whl", isPyPI: false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, !tc.isPyPI, isDirectUVSource(tc.sourceSpec))
+		})
+	}
+}
+
+func TestResolveUVSourceSpec(t *testing.T) {
+	tests := []struct {
+		name        string
+		packageName string
+		customArgs  []string
+		expected    string
+	}{
+		{name: "use from source spec", packageName: "grok-search", customArgs: []string{"--from", "git+https://github.com/org/repo", "grok-search"}, expected: "git+https://github.com/org/repo"},
+		{name: "use first arg when no from", packageName: "ignored", customArgs: []string{"./local-package", "serve"}, expected: "./local-package"},
+		{name: "fallback to package name", packageName: "black", customArgs: nil, expected: "black"},
+		{name: "ignore leading flag and fallback", packageName: "black", customArgs: []string{"--verbose"}, expected: "black"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, resolveUVSourceSpec(tt.packageName, tt.customArgs))
+		})
+	}
+}

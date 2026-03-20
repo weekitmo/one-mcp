@@ -40,3 +40,4 @@ data/skills/
 .trae
 .opencode
 skills-lock.json
+*.yaml
