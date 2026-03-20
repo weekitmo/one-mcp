@@ -56,6 +56,18 @@ func resolvePyPIInstallTarget(packageName, version string, args []string) string
 	return packageName
 }
 
+func buildUVVenvArgs(pkgVenvDir string) ([]string, error) {
+	args := []string{"venv"}
+	if _, err := os.Stat(pkgVenvDir); err == nil {
+		args = append(args, "--clear")
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to inspect virtual environment path %s: %w", pkgVenvDir, err)
+	}
+
+	args = append(args, pkgVenvDir)
+	return args, nil
+}
+
 // InstallPyPIPackage installs a Python package using uv, creates a virtual environment,
 // and then attempts to initialize it as an MCP server.
 // workDir is currently unused, venvsBaseDir is used instead.
@@ -72,7 +84,12 @@ func InstallPyPIPackage(ctx context.Context, packageName, version, command strin
 	pkgVenvDir := filepath.Join(pythonVenvsBaseDir, packageName, "venv")
 
 	// Create virtual environment using uv
-	venvCmd := exec.CommandContext(ctx, "uv", "venv", pkgVenvDir)
+	venvArgs, err := buildUVVenvArgs(pkgVenvDir)
+	if err != nil {
+		return nil, err
+	}
+
+	venvCmd := exec.CommandContext(ctx, "uv", venvArgs...)
 	var stderrVenv bytes.Buffer
 	venvCmd.Stderr = &stderrVenv
 	if err := venvCmd.Run(); err != nil {
