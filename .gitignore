@@ -35,6 +35,7 @@ one-mcp*
 .cursor/rules/*-mode.mdc
 *.db
 *.log
+*.pid
 data/skills/
 
 .trae
@@ -44,3 +45,4 @@ data/skills/
 .cursor
 skills-lock.json
 *.yaml
+
