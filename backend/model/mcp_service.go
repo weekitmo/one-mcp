@@ -51,25 +51,25 @@ type MCPService struct {
 	Name                  string          `db:"name" json:"name"`
 	DisplayName           string          `db:"display_name" json:"display_name"`
 	Description           string          `db:"description" json:"description"`
-	Category              ServiceCategory `db:"category"`
-	Icon                  string          `db:"icon"`
-	DefaultOn             bool            `db:"default_on"`
-	AdminOnly             bool            `db:"admin_only"`
-	OrderNum              int             `db:"order_num"`
-	Enabled               bool            `db:"enabled"`
-	Type                  ServiceType     `db:"type"`
+	Category              ServiceCategory `json:"category" db:"category"`
+	Icon                  string          `json:"icon" db:"icon"`
+	DefaultOn             bool            `json:"default_on" db:"default_on"`
+	AdminOnly             bool            `json:"admin_only" db:"admin_only"`
+	OrderNum              int             `json:"order_num" db:"order_num"`
+	Enabled               bool            `json:"enabled" db:"enabled"`
+	Type                  ServiceType     `json:"type" db:"type"`
 	Command               string          `json:"command,omitempty" db:"command"`
 	ArgsJSON              string          `json:"args_json,omitempty" db:"args_json,default:'{}'"`
-	AllowUserOverride     bool            `db:"allow_user_override"`     // Whether users can override admin settings
-	ClientConfigTemplates string          `db:"client_config_templates"` // JSON map of client_type to template details
-	RequiredEnvVarsJSON   string          `db:"required_env_vars_json"`  // JSON array of environment variables required by the service
-	PackageManager        string          `db:"package_manager"`         // For marketplace services: npm, pypi
-	SourcePackageName     string          `db:"source_package_name"`     // For marketplace services: package name in the repository
-	InstalledVersion      string          `db:"installed_version"`       // For marketplace services: currently installed version
-	InstallerUserID       int64           `db:"installer_user_id"`       // 记录安装者的用户ID
-	HealthStatus          string          `db:"-"`                       // 健康状态: unknown, healthy, unhealthy, starting, stopped
-	LastHealthCheck       time.Time       `db:"-"`                       // 最后健康检查时间
-	HealthDetails         string          `db:"-"`                       // 健康详情的JSON字符串
+	AllowUserOverride     bool            `json:"allow_user_override" db:"allow_user_override"`     // Whether users can override admin settings
+	ClientConfigTemplates string          `json:"client_config_templates" db:"client_config_templates"` // JSON map of client_type to template details
+	RequiredEnvVarsJSON   string          `json:"required_env_vars_json" db:"required_env_vars_json"`  // JSON array of environment variables required by the service
+	PackageManager        string          `json:"package_manager" db:"package_manager"`         // For marketplace services: npm, pypi
+	SourcePackageName     string          `json:"source_package_name" db:"source_package_name"`     // For marketplace services: package name in the repository
+	InstalledVersion      string          `json:"installed_version" db:"installed_version"`       // For marketplace services: currently installed version
+	InstallerUserID       int64           `json:"installer_user_id" db:"installer_user_id"`       // 记录安装者的用户ID
+	HealthStatus          string          `json:"health_status" db:"-"`                       // 健康状态: unknown, healthy, unhealthy, starting, stopped
+	LastHealthCheck       time.Time       `json:"last_health_check" db:"-"`                       // 最后健康检查时间
+	HealthDetails         string          `json:"health_details" db:"-"`                       // 健康详情的JSON字符串
 	DefaultEnvsJSON       string          `json:"default_envs_json,omitempty" db:"default_envs_json,default:'{}'"`
 	HeadersJSON           string          `json:"headers_json,omitempty" db:"headers_json,default:'{}'"` // JSON string for custom request headers map[string]string
 	RPDLimit              int             `json:"rpd_limit,omitempty" db:"rpd_limit,default:0"`          // 每日请求次数限制(0表示不限制)
